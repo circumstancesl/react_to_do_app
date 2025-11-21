@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import TaskItem from "./Tasks/TaskItem.jsx";
-import Share from "./Share/Share.jsx";
-import Input from "./Input/Input.jsx";
-import Edit from "./Edit/Edit.jsx";
-import Alert from "./Alert/Alert.jsx";
-import "./Tasks/Tasks.css";
+import TaskItem from "./TaskItem.jsx";
+import Share from "../ShareWindow/Share.jsx";
+import Input from "../InputForm/Input.jsx";
+import Edit from "../EditWindow/Edit.jsx";
+import Alert from "../AlertWindow/Alert.jsx";
+import "./Tasks.css";
 
 export default function ToDoList() {
   const STORAGE_KEY = "tasks";
