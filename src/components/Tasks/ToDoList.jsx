@@ -4,26 +4,35 @@ import Share from "../ShareWindow/Share.jsx";
 import Input from "../InputForm/Input.jsx";
 import Edit from "../EditWindow/Edit.jsx";
 import Alert from "../AlertWindow/Alert.jsx";
+import { useSelector, useDispatch } from "react-redux";
+import {addTodo, deleteTodo, updateTodo, setTodo, reorderTodos, togglePin} from "../../store/todoSlice.js";
 import "./Tasks.css";
 
 export default function ToDoList() {
   const STORAGE_KEY = "tasks";
-  const [tasks, setTasks] = useState([]);
+  const tasks = useSelector(state => state.todos);
+  const dispatch = useDispatch();
+
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
   const [isShareOpen, setShareOpen] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [dragIndex, setDragIndex] = useState(null);
+
+  const pinnedTasks = tasks.filter(t => t.pinned);
+  const normalTasks = tasks.filter(t => !t.pinned);
 
   useEffect(() => {
     const data = localStorage.getItem(STORAGE_KEY);
 
     try {
-      setTasks(data ? JSON.parse(data) : []);
+      dispatch(setTodo(data ? JSON.parse(data) : []));
     } catch {
-      setTasks([]);
+      dispatch(setTodo([]));
     }
+
     setHasLoaded(true);
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     if (!hasLoaded) return;
@@ -31,30 +40,36 @@ export default function ToDoList() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   }, [tasks, hasLoaded]);
 
-  const addTask = (title, description) => {
+  const handleAddTask = (title, description) => {
     const newTask = { id: Date.now(), title, description };
-    console.log(newTask);
-    setTasks((prev) => [...prev, newTask]);
+    dispatch(addTodo(newTask));
   };
 
-  const deleteTask = (id) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+  const handleDeleteTask = (id) => {
+    dispatch(deleteTodo(id));
     setTaskToDelete(null);
   };
 
-  const updateTask = (oldTask, newTitle, newDesc) => {
+  const handleUpdateTask = (oldTask, newTitle, newDesc) => {
     if (!newTitle.trim()) return;
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === oldTask.id ? { ...t, title: newTitle, description: newDesc } : t
-      )
-    );
+    dispatch(updateTodo({ id: oldTask.id, title: newTitle, description: newDesc }));
     setEditingTask(null);
+  };
+
+  const handleDragStart = (index) => {
+    setDragIndex(index);
+  };
+
+  const handleDrop = (index) => {
+    if (dragIndex === null || dragIndex === index) return;
+
+    dispatch(reorderTodos({ fromIndex: dragIndex, toIndex: index }));
+    setDragIndex(null);
   };
 
   return (
     <main>
-      <Input onAdd={addTask} />
+      <Input onAdd={handleAddTask} />
 
       <section className="tasks-section">
         {tasks.length === 0 && (
@@ -64,10 +79,24 @@ export default function ToDoList() {
         )}
 
         <ul className="tasks-list">
-          {tasks.map((task) => (
+          {pinnedTasks.map(task => (
             <TaskItem
               key={task.id}
               task={task}
+              isPinned
+              onPin={() => dispatch(togglePin(task.id))}
+            />
+          ))}
+
+          {normalTasks.map((task, index) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => handleDrop(index)}
+              onPin={() => dispatch(togglePin(task.id))}
               onDelete={() => setTaskToDelete(task)}
               onEdit={() => setEditingTask(task)}
               onShare={() => setShareOpen(true)}
@@ -77,7 +106,7 @@ export default function ToDoList() {
 
         <Alert
           taskToDelete={taskToDelete}
-          onConfirm={() => deleteTask(taskToDelete.id)}
+          onConfirm={() => handleDeleteTask(taskToDelete.id)}
           onCancel={() => setTaskToDelete(null)}
         />
 
@@ -87,13 +116,13 @@ export default function ToDoList() {
               <Edit
                 task={editingTask}
                 onCancel={() => setEditingTask(null)}
-                onSave={updateTask}
+                onSave={handleUpdateTask}
               />
             </div>
           </div>
         )}
 
-        <Share isOpen={isShareOpen} onClose={() => setShareOpen(false)} />
+        <Share isOpen={isShareOpen} onClose={() => setShareOpen(false)}/>
       </section>
     </main>
   );
