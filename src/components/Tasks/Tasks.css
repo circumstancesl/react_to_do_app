@@ -66,3 +66,16 @@
     justify-content: flex-end;
     gap: 0.5rem;
 }
+
+.task {
+    cursor: grab;
+}
+
+.task:active {
+    cursor: grabbing;
+}
+
+.task--pinned {
+    background: #fff8dc;
+    border-left: 4px solid gold;
+}
